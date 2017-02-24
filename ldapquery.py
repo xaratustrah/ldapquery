@@ -15,30 +15,29 @@ from getpass import getpass
 import sys
 
 username = 'domain\\user'
-server_name = 'server:port'
+server_address = 'server:port'
 org_name = '@example.net'
+options = 'cn=users,dc=example,dc=net'
 
 
 def main(pattern, passwd):
-    server = Server(server_name, get_info=ALL)
-    conn = Connection(server)
-    conn.bind()
+    server = Server(server_address, get_info=ALL)
     conn = Connection(server, 'uid={},cn=users,dc=gsi,dc=de'.format(username), passwd, auto_bind=True,
                       authentication=NTLM)
-    # print(conn)
-    # print(server.info)
-    conn.search('cn=users,dc=gsi,dc=de', '(|(cn=*{}*)(givenName=*{}*))'.format(pattern, pattern))
-    for entry in conn.entries:
-        tx = entry.entry_dn
-        mail = tx.split(',')[0].split('=')[1]
+    conn.search(options, '(|(cn=*{}*)(givenName=*{}*))'.format(pattern, pattern))
+    mail_list = []
+    for ent in conn.entries:
+        tx = ent.entry_dn
+        mail = (tx.split(',')[0].split('=')[1])
         if '@' not in tx:
             mail += org_name
-        print(mail)
+        mail_list.append(mail)
+    print(', '.join(map(str, mail_list)))
     conn.unbind()
 
 
 # ----
 if __name__ == '__main__':
-    passwd = getpass('Password for {} @ {} :'.format(username, server_name))
+    passwd = getpass('Password for {} @ {} :'.format(username, server_address))
     for arg in sys.argv:
         main(arg, passwd)
